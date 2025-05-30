@@ -1,5 +1,5 @@
 # Morpion 3D
-Ceci est une applicaation web de morpion basé sur le principale de la 3 Dimensions (3D) avec un cube à quatre faces contenant chacune une grille de morpion. Toutes ces grilles sont reliées.
+Ceci est une application web de morpion basé sur le principale de la 3 Dimensions (3D) avec un cube à quatre faces contenant chacune une grille de morpion. Toutes ces grilles sont reliées.
 
 ## Comment jouer :
 - Cliquez sur une case vide pour placer votre X

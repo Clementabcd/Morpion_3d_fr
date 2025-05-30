@@ -1,0 +1,545 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morpion 3D - Jeu contre IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .cube-container {
+            perspective: 1200px;
+            perspective-origin: center center;
+        }
+        
+        .cube {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            transform-style: preserve-3d;
+            transform: rotateX(-15deg) rotateY(25deg);
+            transition: transform 0.6s ease;
+        }
+        
+        .cube:hover {
+            transform: rotateX(-10deg) rotateY(30deg) scale(1.02);
+        }
+        
+        .face {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            display: grid;
+            grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+            gap: 2px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .front { 
+            background: rgba(74, 144, 226, 0.15);
+            transform: translateZ(150px); 
+        }
+        .back { 
+            background: rgba(245, 101, 101, 0.15);
+            transform: rotateY(180deg) translateZ(150px); 
+        }
+        .right { 
+            background: rgba(72, 187, 120, 0.15);
+            transform: rotateY(90deg) translateZ(150px); 
+        }
+        .left { 
+            background: rgba(236, 201, 75, 0.15);
+            transform: rotateY(-90deg) translateZ(150px); 
+        }
+        .top { 
+            background: rgba(159, 122, 234, 0.15);
+            transform: rotateX(90deg) translateZ(150px); 
+        }
+        .bottom { 
+            background: rgba(251, 146, 60, 0.15);
+            transform: rotateX(-90deg) translateZ(150px); 
+        }
+        
+        .cell {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.95);
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        
+        .cell.x {
+            color: #60A5FA;
+            text-shadow: 0 0 15px #60A5FA;
+            animation: pulse 2s infinite;
+        }
+        
+        .cell.o {
+            color: #F87171;
+            text-shadow: 0 0 15px #F87171;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes rotate {
+            from { transform: rotateX(-15deg) rotateY(25deg); }
+            to { transform: rotateX(-15deg) rotateY(385deg); }
+        }
+        
+        .celebrating {
+            animation: rotate 2s ease-in-out;
+        }
+        
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="container mx-auto max-w-6xl">
+        <!-- En-tête -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-white mb-4 tracking-wide">
+                Morpion 3D
+            </h1>
+            <p class="text-xl text-white/80">Jouez contre l'IA dans un univers tridimensionnel</p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-8 items-center">
+            <!-- Cube de jeu -->
+            <div class="flex justify-center">
+                <div class="cube-container">
+                    <div class="cube" id="cube">
+                        <div class="face front" data-face="0">
+                            <div class="cell" data-face="0" data-cell="0"></div>
+                            <div class="cell" data-face="0" data-cell="1"></div>
+                            <div class="cell" data-face="0" data-cell="2"></div>
+                            <div class="cell" data-face="0" data-cell="3"></div>
+                            <div class="cell" data-face="0" data-cell="4"></div>
+                            <div class="cell" data-face="0" data-cell="5"></div>
+                            <div class="cell" data-face="0" data-cell="6"></div>
+                            <div class="cell" data-face="0" data-cell="7"></div>
+                            <div class="cell" data-face="0" data-cell="8"></div>
+                        </div>
+                        <div class="face back" data-face="1">
+                            <div class="cell" data-face="1" data-cell="0"></div>
+                            <div class="cell" data-face="1" data-cell="1"></div>
+                            <div class="cell" data-face="1" data-cell="2"></div>
+                            <div class="cell" data-face="1" data-cell="3"></div>
+                            <div class="cell" data-face="1" data-cell="4"></div>
+                            <div class="cell" data-face="1" data-cell="5"></div>
+                            <div class="cell" data-face="1" data-cell="6"></div>
+                            <div class="cell" data-face="1" data-cell="7"></div>
+                            <div class="cell" data-face="1" data-cell="8"></div>
+                        </div>
+                        <div class="face right" data-face="2">
+                            <div class="cell" data-face="2" data-cell="0"></div>
+                            <div class="cell" data-face="2" data-cell="1"></div>
+                            <div class="cell" data-face="2" data-cell="2"></div>
+                            <div class="cell" data-face="2" data-cell="3"></div>
+                            <div class="cell" data-face="2" data-cell="4"></div>
+                            <div class="cell" data-face="2" data-cell="5"></div>
+                            <div class="cell" data-face="2" data-cell="6"></div>
+                            <div class="cell" data-face="2" data-cell="7"></div>
+                            <div class="cell" data-face="2" data-cell="8"></div>
+                        </div>
+                        <div class="face left" data-face="3">
+                            <div class="cell" data-face="3" data-cell="0"></div>
+                            <div class="cell" data-face="3" data-cell="1"></div>
+                            <div class="cell" data-face="3" data-cell="2"></div>
+                            <div class="cell" data-face="3" data-cell="3"></div>
+                            <div class="cell" data-face="3" data-cell="4"></div>
+                            <div class="cell" data-face="3" data-cell="5"></div>
+                            <div class="cell" data-face="3" data-cell="6"></div>
+                            <div class="cell" data-face="3" data-cell="7"></div>
+                            <div class="cell" data-face="3" data-cell="8"></div>
+                        </div>
+                        <div class="face top" data-face="4">
+                            <div class="cell" data-face="4" data-cell="0"></div>
+                            <div class="cell" data-face="4" data-cell="1"></div>
+                            <div class="cell" data-face="4" data-cell="2"></div>
+                            <div class="cell" data-face="4" data-cell="3"></div>
+                            <div class="cell" data-face="4" data-cell="4"></div>
+                            <div class="cell" data-face="4" data-cell="5"></div>
+                            <div class="cell" data-face="4" data-cell="6"></div>
+                            <div class="cell" data-face="4" data-cell="7"></div>
+                            <div class="cell" data-face="4" data-cell="8"></div>
+                        </div>
+                        <div class="face bottom" data-face="5">
+                            <div class="cell" data-face="5" data-cell="0"></div>
+                            <div class="cell" data-face="5" data-cell="1"></div>
+                            <div class="cell" data-face="5" data-cell="2"></div>
+                            <div class="cell" data-face="5" data-cell="3"></div>
+                            <div class="cell" data-face="5" data-cell="4"></div>
+                            <div class="cell" data-face="5" data-cell="5"></div>
+                            <div class="cell" data-face="5" data-cell="6"></div>
+                            <div class="cell" data-face="5" data-cell="7"></div>
+                            <div class="cell" data-face="5" data-cell="8"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panneau de contrôle -->
+            <div class="space-y-6">
+                <div class="status-panel text-center">
+                    <h2 class="text-2xl font-bold text-white mb-4">Statut du jeu</h2>
+                    <div id="gameStatus" class="text-xl text-white/90 mb-4">
+                        À votre tour - Placez votre X
+                    </div>
+                    <div class="flex justify-center space-x-4 mb-6">
+                        <div class="glass-effect rounded-lg px-4 py-2">
+                            <span class="text-blue-300 font-semibold">Vous (X): </span>
+                            <span id="playerScore" class="text-white font-bold">0</span>
+                        </div>
+                        <div class="glass-effect rounded-lg px-4 py-2">
+                            <span class="text-red-300 font-semibold">IA (O): </span>
+                            <span id="aiScore" class="text-white font-bold">0</span>
+                        </div>
+                    </div>
+                    <button id="resetBtn" class="btn-primary text-white px-8 py-3 rounded-lg font-semibold shadow-lg">
+                        Nouvelle partie
+                    </button>
+                </div>
+
+                <div class="status-panel">
+                    <h3 class="text-lg font-semibold text-white mb-3">Comment jouer :</h3>
+                    <ul class="text-white/80 space-y-2 text-sm">
+                        <li>• Cliquez sur une case vide pour placer votre X</li>
+                        <li>• Alignez 3 X sur une ligne, colonne ou diagonale</li>
+                        <li>• Les alignements peuvent être sur une face ou traverser le cube</li>
+                        <li>• L'IA joue automatiquement après vous</li>
+                        <li>• Faites tourner le cube avec la souris pour mieux voir</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TicTacToe3D {
+            constructor() {
+                this.board = Array(6).fill().map(() => Array(9).fill(''));
+                this.currentPlayer = 'X';
+                this.gameActive = true;
+                this.playerScore = 0;
+                this.aiScore = 0;
+                this.isThinking = false;
+                
+                this.initializeGame();
+            }
+
+            initializeGame() {
+                this.attachEventListeners();
+                this.updateStatus("À votre tour - Placez votre X");
+            }
+
+            attachEventListeners() {
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.addEventListener('click', (e) => this.handleCellClick(e));
+                });
+                
+                document.getElementById('resetBtn').addEventListener('click', () => this.resetGame());
+                
+                // Rotation du cube au clic et glissement
+                let isDragging = false;
+                let startX, startY;
+                let currentRotationY = 25;
+                let currentRotationX = -15;
+                
+                const cube = document.getElementById('cube');
+                
+                cube.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    cube.style.cursor = 'grabbing';
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+                    
+                    currentRotationY += deltaX * 0.5;
+                    currentRotationX -= deltaY * 0.5;
+                    
+                    cube.style.transform = `rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+                    
+                    startX = e.clientX;
+                    startY = e.clientY;
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    cube.style.cursor = 'grab';
+                });
+            }
+
+            handleCellClick(e) {
+                if (!this.gameActive || this.isThinking) return;
+                
+                const cell = e.target;
+                const face = parseInt(cell.dataset.face);
+                const cellIndex = parseInt(cell.dataset.cell);
+                
+                if (this.board[face][cellIndex] !== '') return;
+                
+                this.makeMove(face, cellIndex, 'X');
+                
+                if (this.checkWinner()) {
+                    this.endGame();
+                    return;
+                }
+                
+                if (this.isBoardFull()) {
+                    this.updateStatus("Match nul !");
+                    this.gameActive = false;
+                    return;
+                }
+                
+                // Tour de l'IA
+                this.currentPlayer = 'O';
+                this.isThinking = true;
+                this.updateStatus("L'IA réfléchit...");
+                
+                setTimeout(() => {
+                    this.aiMove();
+                    
+                    if (this.checkWinner()) {
+                        this.endGame();
+                        return;
+                    }
+                    
+                    if (this.isBoardFull()) {
+                        this.updateStatus("Match nul !");
+                        this.gameActive = false;
+                        return;
+                    }
+                    
+                    this.currentPlayer = 'X';
+                    this.isThinking = false;
+                    this.updateStatus("À votre tour - Placez votre X");
+                }, 1000);
+            }
+
+            makeMove(face, cellIndex, player) {
+                this.board[face][cellIndex] = player;
+                const cell = document.querySelector(`[data-face="${face}"][data-cell="${cellIndex}"]`);
+                cell.textContent = player;
+                cell.classList.add(player.toLowerCase());
+            }
+
+            aiMove() {
+                // Stratégie IA : d'abord essayer de gagner, puis bloquer le joueur, sinon coup aléatoire intelligent
+                let move = this.findWinningMove('O') || this.findWinningMove('X') || this.getStrategicMove();
+                
+                if (move) {
+                    this.makeMove(move.face, move.cell, 'O');
+                }
+            }
+
+            findWinningMove(player) {
+                const winPatterns = this.getAllWinPatterns();
+                
+                for (let pattern of winPatterns) {
+                    let playerCount = 0;
+                    let emptyCell = null;
+                    
+                    for (let pos of pattern) {
+                        if (this.board[pos.face][pos.cell] === player) {
+                            playerCount++;
+                        } else if (this.board[pos.face][pos.cell] === '') {
+                            emptyCell = pos;
+                        }
+                    }
+                    
+                    if (playerCount === 2 && emptyCell) {
+                        return emptyCell;
+                    }
+                }
+                
+                return null;
+            }
+
+            getStrategicMove() {
+                // Priorité au centre, puis coins, puis bords
+                const strategicPositions = [
+                    {face: 0, cell: 4}, {face: 1, cell: 4}, {face: 2, cell: 4},
+                    {face: 3, cell: 4}, {face: 4, cell: 4}, {face: 5, cell: 4},
+                    {face: 0, cell: 0}, {face: 0, cell: 2}, {face: 0, cell: 6}, {face: 0, cell: 8}
+                ];
+                
+                for (let pos of strategicPositions) {
+                    if (this.board[pos.face][pos.cell] === '') {
+                        return pos;
+                    }
+                }
+                
+                // Coup aléatoire si aucune position stratégique disponible
+                const emptyCells = [];
+                for (let face = 0; face < 6; face++) {
+                    for (let cell = 0; cell < 9; cell++) {
+                        if (this.board[face][cell] === '') {
+                            emptyCells.push({face, cell});
+                        }
+                    }
+                }
+                
+                return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            }
+
+            getAllWinPatterns() {
+                const patterns = [];
+                
+                // Lignes et colonnes sur chaque face
+                for (let face = 0; face < 6; face++) {
+                    // Lignes horizontales
+                    for (let row = 0; row < 3; row++) {
+                        patterns.push([
+                            {face, cell: row * 3},
+                            {face, cell: row * 3 + 1},
+                            {face, cell: row * 3 + 2}
+                        ]);
+                    }
+                    
+                    // Colonnes verticales
+                    for (let col = 0; col < 3; col++) {
+                        patterns.push([
+                            {face, cell: col},
+                            {face, cell: col + 3},
+                            {face, cell: col + 6}
+                        ]);
+                    }
+                    
+                    // Diagonales
+                    patterns.push([
+                        {face, cell: 0}, {face, cell: 4}, {face, cell: 8}
+                    ]);
+                    patterns.push([
+                        {face, cell: 2}, {face, cell: 4}, {face, cell: 6}
+                    ]);
+                }
+                
+                // Patterns inter-faces (quelques exemples pour la complexité 3D)
+                // Traversée du cube
+                patterns.push([
+                    {face: 0, cell: 4}, {face: 1, cell: 4}, {face: 2, cell: 4}
+                ]);
+                
+                return patterns;
+            }
+
+            checkWinner() {
+                const patterns = this.getAllWinPatterns();
+                
+                for (let pattern of patterns) {
+                    const [a, b, c] = pattern;
+                    if (this.board[a.face][a.cell] !== '' &&
+                        this.board[a.face][a.cell] === this.board[b.face][b.cell] &&
+                        this.board[b.face][b.cell] === this.board[c.face][c.cell]) {
+                        return this.board[a.face][a.cell];
+                    }
+                }
+                
+                return null;
+            }
+
+            isBoardFull() {
+                return this.board.every(face => face.every(cell => cell !== ''));
+            }
+
+            endGame() {
+                this.gameActive = false;
+                const winner = this.checkWinner();
+                
+                if (winner === 'X') {
+                    this.playerScore++;
+                    this.updateStatus("🎉 Félicitations ! Vous avez gagné !");
+                    document.getElementById('playerScore').textContent = this.playerScore;
+                } else if (winner === 'O') {
+                    this.aiScore++;
+                    this.updateStatus("💻 L'IA a gagné cette fois !");
+                    document.getElementById('aiScore').textContent = this.aiScore;
+                }
+                
+                // Animation de célébration
+                document.getElementById('cube').classList.add('celebrating');
+                setTimeout(() => {
+                    document.getElementById('cube').classList.remove('celebrating');
+                }, 2000);
+            }
+
+            updateStatus(message) {
+                document.getElementById('gameStatus').textContent = message;
+            }
+
+            resetGame() {
+                this.board = Array(6).fill().map(() => Array(9).fill(''));
+                this.currentPlayer = 'X';
+                this.gameActive = true;
+                this.isThinking = false;
+                
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('x', 'o');
+                });
+                
+                this.updateStatus("À votre tour - Placez votre X");
+            }
+        }
+
+        // Initialisation du jeu
+        window.addEventListener('DOMContentLoaded', () => {
+            new TicTacToe3D();
+        });
+    </script>
+</body>
+</html>
